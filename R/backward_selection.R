@@ -59,19 +59,36 @@
 #'@export
 #'
 
+BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NULL,catvarlist=NULL,
+                  outcome,type="lm",sig=0.05,complete_case=FALSE){
+  library(dplyr)
+  library(lspline)
+  library(stringi)
+  library(stringr)
 
+  # ##Macros for test, delete later:
+  # data=NHANES
+  #
+  # qvarlist<-c("BPSysAve","SleepHrsNight","TotChol")
+  # lvarlist<-c("Age","BPDiaAve","Weight","Height")
+  # spvarlist<-c("Pulse","DirectChol")
+  # spclist<-c(70,1.2)
+  # catvarlist<-c("Depressed","Marijuana","Gender")
+  #
+  # type="lm"
+  # outcome="BMI"
+  # sinkfile="test1"
+  # complete_case=TRUE
+  # sig=0.05
 
-# rm(list=ls(all=TRUE))  #same to clear all in stata
-# cat("\014")
-# ##Import the NHANES data for testing:
-formula_Gen<-function(qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NULL,catvarlist=NULL,
-                      outcome){
+  data=data[,c(qvarlist,lvarlist,spvarlist,catvarlist,outcome)]
+
   ##Warning1: If no covariates selected:
   if(length(qvarlist)+length(lvarlist)+length(spvarlist)+length(catvarlist)==0) stop("No covariates inputed.")
   ##Warning2: If no spclist input but have spvarlist input:
   if(length(spvarlist)!=0 & length(spclist)==0) stop("No split cutpoint input")
 
-  ##Generate overall varlist and output formula:
+  ##Generate overall varlist:
   varlist=c()
   #Quandratic terms:
   qvarlist2<-c()
@@ -98,49 +115,6 @@ formula_Gen<-function(qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NULL,ca
     spvarlist2=c(spvarlist2,paste0("lspline(",var,",",np,")"))
   }
 
-}
-
-
-
-BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NULL,catvarlist=NULL,
-                  outcome,type="lm",sig=0.05,complete_case=FALSE){
-  library(dplyr)
-  library(lspline)
-  library(stringi)
-  library(stringr)
-  ##Warning1: If no covariates selected:
-  if(length(qvarlist)+length(lvarlist)+length(spvarlist)+length(catvarlist)==0) stop("No covariates inputed.")
-  ##Warning2: If no spclist input but have spvarlist input:
-  if(length(spvarlist)!=0 & length(spclist)==0) stop("No split cutpoint input")
-
-
-  # ##Macros for test, delete later:
-  data=NHANES
-
-  qvarlist<-c("BPSysAve","SleepHrsNight","TotChol")
-  lvarlist<-c("Age","BPDiaAve","Weight","Height")
-  spvarlist<-c("Pulse","DirectChol")
-  spclist<-c(70,1.2)
-  catvarlist<-c("Depressed","Marijuana","Gender")
-
-  type="lm"
-  outcome="BMI"
-  sinkfile="test1"
-  complete_case=TRUE
-  sig=0.05
-
-  data=data[,c(qvarlist,lvarlist,spvarlist,catvarlist,outcome)]
-
-  ##UPdate quadratic terms:
-  # for(var in qvarlist){
-  #   data[,paste0(var,"_quar2")]=data[,var]^2
-  # }
-
-  ##Test sig, delete later
-  ##summary(lm(BMI~Age+BPDiaAve+DirectChol+BPSysAve_2,data=data))
-
-
-
 
   #Remove missings in the full model
   if(complete_case==TRUE){
@@ -148,10 +122,9 @@ BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NU
   }
 
 
-  #Unweighted Selection:#
+  #Selection begain#
   ################################################################################
   ################################################################################
-
 
   #sink(file=sinkfile,append = FALSE)
 
