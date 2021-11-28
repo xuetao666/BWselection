@@ -64,61 +64,32 @@
 # rm(list=ls(all=TRUE))  #same to clear all in stata
 # cat("\014")
 # ##Import the NHANES data for testing:
+formula_Gen<-function(qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NULL,catvarlist=NULL,
+                      outcome){
+  ##Warning1: If no covariates selected:
+  if(length(qvarlist)+length(lvarlist)+length(spvarlist)+length(catvarlist)==0) stop("No covariates inputed.")
+  ##Warning2: If no spclist input but have spvarlist input:
+  if(length(spvarlist)!=0 & length(spclist)==0) stop("No split cutpoint input")
 
-
-
-BWselection<-function(data,qvarlist,lvarlist,spvarlist,spclist,catvarlist,
-                  outcome,type="lm",sig=0.05,complete_case=FALSE){
-  library(dplyr)
-  library(lspline)
-  library(stringi)
-  library(stringr)
-  ##Macros for test, delete later:
-  # data=NHANES
-  #
-  # qvarlist<-c("BPSysAve","SleepHrsNight","TotChol")
-  # lvarlist<-c("Age","BPDiaAve","Weight","Height")
-  # spvarlist<-c("Pulse","DirectChol")
-  # spclist<-c(70,1.2)
-  # catvarlist<-c("Depressed","Marijuana","Gender")
-  #
-  # type="lm"
-  # outcome="BMI"
-  # sinkfile="test1"
-  # complete_case=TRUE
-  # sig=0.05
-
-  data=data[,c(qvarlist,lvarlist,spvarlist,catvarlist,outcome)]
-
-  ##UPdate quadratic terms:
-  for(var in qvarlist){
-    data[,paste0(var,"_quar2")]=data[,var]^2
-  }
-
-  ##Test sig, delete later
-  ##summary(lm(BMI~Age+BPDiaAve+DirectChol+BPSysAve_2,data=data))
-
-
+  ##Generate overall varlist and output formula:
   varlist=c()
+  #Quandratic terms:
   qvarlist2<-c()
   for(var in qvarlist){
-    varlist=c(varlist,var,paste0(var,"_quar2"))
-    qvarlist2=c(qvarlist2,var,paste0(var,"_quar2"))
+    varlist=c(varlist,var,paste0("I(",var,"^2)"))
+    qvarlist2=c(qvarlist2,var,paste0("I(",var,"^2)"))
   }
-
-
+  #Continous terms:
   for(var in c(lvarlist)){
     varlist=c(varlist,var)
   }
-
-
+  #Categorical terms:
   catvarlist2=c()
   for(var in c(catvarlist)){
     varlist=c(varlist,paste0("as.factor(",var,")"))
     catvarlist2=c(catvarlist2,paste0("as.factor(",var,")"))
   }
-
-
+  #Split terms:
   spvarlist2=c()
   for(var in spvarlist){
     p=which(spvarlist %in% var)
@@ -126,6 +97,49 @@ BWselection<-function(data,qvarlist,lvarlist,spvarlist,spclist,catvarlist,
     varlist=c(varlist,paste0("lspline(",var,",",np,")"))
     spvarlist2=c(spvarlist2,paste0("lspline(",var,",",np,")"))
   }
+
+}
+
+
+
+BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NULL,catvarlist=NULL,
+                  outcome,type="lm",sig=0.05,complete_case=FALSE){
+  library(dplyr)
+  library(lspline)
+  library(stringi)
+  library(stringr)
+  ##Warning1: If no covariates selected:
+  if(length(qvarlist)+length(lvarlist)+length(spvarlist)+length(catvarlist)==0) stop("No covariates inputed.")
+  ##Warning2: If no spclist input but have spvarlist input:
+  if(length(spvarlist)!=0 & length(spclist)==0) stop("No split cutpoint input")
+
+
+  # ##Macros for test, delete later:
+  data=NHANES
+
+  qvarlist<-c("BPSysAve","SleepHrsNight","TotChol")
+  lvarlist<-c("Age","BPDiaAve","Weight","Height")
+  spvarlist<-c("Pulse","DirectChol")
+  spclist<-c(70,1.2)
+  catvarlist<-c("Depressed","Marijuana","Gender")
+
+  type="lm"
+  outcome="BMI"
+  sinkfile="test1"
+  complete_case=TRUE
+  sig=0.05
+
+  data=data[,c(qvarlist,lvarlist,spvarlist,catvarlist,outcome)]
+
+  ##UPdate quadratic terms:
+  # for(var in qvarlist){
+  #   data[,paste0(var,"_quar2")]=data[,var]^2
+  # }
+
+  ##Test sig, delete later
+  ##summary(lm(BMI~Age+BPDiaAve+DirectChol+BPSysAve_2,data=data))
+
+
 
 
   #Remove missings in the full model
@@ -156,8 +170,8 @@ BWselection<-function(data,qvarlist,lvarlist,spvarlist,spclist,catvarlist,
       aic_pre=aic_fit
     }
 
-    full_model<-paste(varlist,"+",collapse=" ")
-    full_model<-substr(full_model,1,nchar(full_model)-1)
+    full_model=paste(varlist,"+",collapse=" ")
+    full_model=substr(full_model,1,nchar(full_model)-1)
     if(type=="lm"){ #For linear regression:
       full_model<-paste0(outcome,"~",full_model)
       fit<-lm(as.formula(full_model),data=data)
@@ -226,11 +240,12 @@ BWselection<-function(data,qvarlist,lvarlist,spvarlist,spclist,catvarlist,
       }
 
 
+
       ##remove the factor from the regression list:
 
       if(max_p>sig){
         ##For category variables, didn't remove if any category is significant:
-        if(sum(c(catvarlist2,qvarlist2,spvarlist2) %in% max_p_name_c)>0 & !stri_detect_fixed(max_p_name_c,"_quar2") ){ ##Variable in the category list, but not qvarlist second term
+        if(sum(c(catvarlist2,qvarlist2,spvarlist2) %in% max_p_name_c)>0 & !stri_detect_fixed(max_p_name_c,"^2") ){ ##Variable in the category list, but not qvarlist second term
           #Get p values for all category:
           values_p=coef_p[stri_detect_fixed(names_p,max_p_name_c)]
           min_list_p=min(values_p)
