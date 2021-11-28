@@ -2,19 +2,20 @@
 % Please edit documentation in R/backward_selection.R
 \name{BWselection}
 \alias{BWselection}
-\title{BWselection}
+\title{BackWard Selection}
 \usage{
 BWselection(
   data,
-  qvarlist,
-  lvarlist,
-  spvarlist,
-  spclist,
-  catvarlist,
+  qvarlist = NULL,
+  lvarlist = NULL,
+  spvarlist = NULL,
+  spclist = NULL,
+  catvarlist = NULL,
   outcome,
   type = "lm",
   sig = 0.05,
-  complete_case = FALSE
+  complete_case = TRUE,
+  track = "Simple"
 )
 }
 \arguments{
@@ -22,21 +23,23 @@ BWselection(
 
 \item{qvarlist}{Variable list in vector format, including all the variables needed for the quadratic form}
 
-\item{lvarlist}{Variable list in vector format, including all the variables in the continous linear form}
+\item{lvarlist}{Variable list in vector format, including all the variables in the continuous linear form}
 
 \item{spvarlist}{variable list in vector format, including all the variables for the spline form}
 
-\item{spclist}{if spvarlist is not empty, specify the cutpoints for the spline term}
+\item{spclist}{if spvarlist is not empty, specify the outpoints for the spline term}
 
-\item{catvarlist}{variable list in the vector format, including all the categorial variables}
+\item{catvarlist}{variable list in the vector format, including all the categorical variables}
 
 \item{outcome}{Outcome variable for the regression model}
 
-\item{type}{type of regression model, default is lm}
+\item{type}{type of regression model, default is lm, logistic regression use type="logistic"}
 
 \item{sig}{significant level used for exit the model, default is 0.05}
 
-\item{complete_case}{whether to use the complete case for all the variables in the model, defualt is FALSE}
+\item{complete_case}{whether to use the complete case for all the variables in the model, default is TRUE}
+
+\item{track}{Whether print the selection process, could select from "Simple","All", "None"}
 }
 \value{
 a list of original formula, final fit model and final fit formula
@@ -45,6 +48,7 @@ a list of original formula, final fit model and final fit formula
 Perform Backward selection on regression models
 }
 \examples{
+
 #Load NHANES DATA
 library(NHANES)
 data("NHANES")
@@ -61,26 +65,5 @@ catvarlist<-c("Depressed","Marijuana","Gender")
 fit_test1=BWselection(data=NHANES,qvarlist=qvarlist,lvarlist=lvarlist,spvarlist=spvarlist,
                      spclist=spclist,catvarlist=catvarlist,outcome="BMI",type="lm",sig=0.05,complete_case=TRUE)
 
-
-#In order to compare the result, we use the step function build in R.
-#However, the function didn't work with the Incomplete case data, Thus, we need to clean it first and fit the model by hand
-
-#Clean the data:
-test_data=NHANES[,c(qvarlist,lvarlist,spvarlist,catvarlist,"BMI")]
-test_data=test_data[complete.cases(test_data),]
-
-#Fit the same original model by hand:(Note that here, we create quandartic forms as I(BPSysAve^2), same as result of BPSysAve_quar2)
-or_fit=lm(BMI~BPSysAve + I(BPSysAve^2) + SleepHrsNight +
-           I(SleepHrsNight^2) + TotChol + I(TotChol^2) +
-           Age + BPDiaAve + Weight + Height + as.factor(Depressed) +
-           as.factor(Marijuana) + as.factor(Gender) + lspline(Pulse,70) +
-           lspline(DirectChol,1.2),data=test_data)
-
-#Final model fit
-fit_2=step(or_fit, direction = "backward", trace=TRUE, test = "F" )
-
-##Compare the two results:
-summary(fit_2)
-summary(fit_test1$fit)
 
 }

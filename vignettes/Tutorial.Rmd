@@ -1,0 +1,212 @@
+---
+title: "Tutorial"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+To use the backward selection function, install and load the package first, also, for the demonstration, we will use the NHANES dataset in the NHANES package
+
+```{r setup}
+rm(list=ls(all=TRUE))  #clear all
+cat("\014")
+
+library(BWselection)
+library(NHANES)
+#Load dataset:
+data(NHANES)
+```
+
+Let's check the data first:
+```{r}
+dim(NHANES)
+names(NHANES)
+
+```
+### 1. Linear Regression selection:
+First, let's do a linear regression selection. For the purpose of demonstration, we use the BMI as the outcome, and include both linear, quadratic, categorical and spline terms for the regression selection:
+Note that: 
+
+* The significant level is 0.05 as default, you could change this.
+* The complete_case argument default is FALSE, which means if there is missingness in the variable selected, different fit might have different obervation numbers. Thus, the final selection model might not be reliable. Thus, complete_case=FALSE needed to be used carefully.
+* `track="None"` refers that don't show the detail process of the selection. Could select from "None","All","Simple"
+
+
+```{r}
+
+#Create variable lists that used to put into the model:
+
+qvarlist<-c("BPSysAve","SleepHrsNight","TotChol") #Quandratic terms
+lvarlist<-c("Age","BPDiaAve","Weight","Height") #linear terms
+spvarlist<-c("Pulse","DirectChol") #spline terms of linear function
+spclist<-c(70,1.2) #spline cutpoints
+catvarlist<-c("Depressed","Marijuana","Gender") #categorical variable list
+
+#Run the function, this will return a list, including the original fit model, original formula and the final fit:
+fit1=BWselection(data=NHANES,qvarlist=qvarlist,lvarlist=lvarlist,spvarlist=spvarlist,
+                     spclist=spclist,catvarlist=catvarlist,outcome="BMI",type="lm",sig=0.05,complete_case=TRUE,track = "None") 
+
+```
+
+If want to check the detail process of the selection, use the `track` argument. `track="Simple"` refers to show the simple output.
+
+```{r}
+fit2=BWselection(data=NHANES,qvarlist=qvarlist,lvarlist=lvarlist,spvarlist=spvarlist,
+                     spclist=spclist,catvarlist=catvarlist,outcome="BMI",type="lm",sig=0.05,complete_case=TRUE,track = "Simple") 
+```
+
+we could use the argument `fit2$fit` to call the final model:
+
+```{r}
+summary(fit2$fit)
+```
+
+
+### 2. Logistic regression model:
+
+Similarly, to do logistic regression model, simple change the `type="lm"` to `type="logistic"`. Following is an example, we still use the NHANES dataset: This time, we use the Depression as the outcome
+
+```{r}
+qvarlist<-c("BPSysAve","SleepHrsNight","TotChol","BMI") #Quandratic terms
+lvarlist<-c("Age","BPDiaAve","Weight","Height") #linear terms
+spvarlist<-c("Pulse","DirectChol") #spline terms of linear function
+spclist<-c(70,1.2) #spline cutpoints
+catvarlist<-c("Marijuana","Gender") #categorical variable list
+
+#Run the function, this will return a list, including the original fit model, original formula and the final fit:
+fit3=BWselection(data=NHANES,qvarlist=qvarlist,lvarlist=lvarlist,spvarlist=spvarlist,
+                     spclist=spclist,catvarlist=catvarlist,outcome="Depressed",type="logistic",sig=0.05,complete_case=TRUE,track = "None") 
+```
+
+
+### 3. Comparison of this function to the step function in R
+
+#### 3.1 Correctness
+First, let's compare the model generated in the previous example with the step function. For the linear regression model: Recall that the orginal formula was stored in the output, to use that, we simply call `fit1$Orignal_formula`
+
+```{r}
+(lm_formula=fit1$Orignal_formula)
+```
+
+Since for the step function, if the data is not complete case and the rows is different, it will show the error message as below:
+
+```{r,error=TRUE}
+fit1_or=lm(as.formula(lm_formula),data=NHANES)
+
+fit1_step=step(fit1_or, direction = "backward", trace=FALSE )
+```
+
+Thus, we need to clean the data based on the orginal model first:
+
+```{r}
+
+#List of variables from the first fit:
+qvarlist<-c("BPSysAve","SleepHrsNight","TotChol") #Quandratic terms
+lvarlist<-c("Age","BPDiaAve","Weight","Height") #linear terms
+spvarlist<-c("Pulse","DirectChol") #spline terms of linear function
+spclist<-c(70,1.2) #spline cutpoints
+catvarlist<-c("Depressed","Marijuana","Gender") #categorical variable list
+#keep the complete case of data:
+test_data=NHANES[,c(qvarlist,lvarlist,spvarlist,catvarlist,"BMI")]
+test_data=test_data[complete.cases(test_data),]
+
+#Now, lets fit the model again and run the step test:
+fit1_or=lm(as.formula(lm_formula),data=test_data)
+fit1_step=step(fit1_or, direction = "backward", trace=FALSE )
+
+```
+
+Now, let's compare the two models:
+
+```{r}
+#Model from our selection model:
+summary(fit1$fit)
+
+#Model from the step function:
+summary(fit1_step)
+
+```
+The selection result is exactly the same.
+
+For the logistic regression model:
+
+```{r}
+(lm_formula=fit3$Orignal_formula)
+fit3_or=glm(as.formula(lm_formula),data=test_data,family="binomial")
+fit3_step=step(fit3_or, direction = "backward", trace=FALSE )
+```
+Let's compare the two model:
+
+```{r}
+summary(fit3$fit)
+summary(fit3_step)
+```
+The two selection is different at this time. This happens because that the `step` function in R didn't fully consider the quandratic terms in the selection process, comparing two models, we noticed that the model generate by `step` function have "TotChol" quandratic form in the model but drop the linear form of "TotChol". However, leaving only the quandratic form in the model is not correct. The selection process in our function put this problem into consideration, if want to drop the linear term, must drop the quandratic term first.
+
+Here, let's remove the quandratic terms and do the selection again:
+
+```{r}
+
+lvarlist<-c("BPSysAve","SleepHrsNight","TotChol","BMI","Age","BPDiaAve","Weight","Height") #linear terms
+spvarlist<-c("Pulse","DirectChol") #spline terms of linear function
+spclist<-c(70,1.2) #spline cutpoints
+catvarlist<-c("Marijuana","Gender") #categorical variable list
+
+#Run the function, this will return a list, including the original fit model, original formula and the final fit:
+fit4=BWselection(data=NHANES,lvarlist=lvarlist,spvarlist=spvarlist,
+                     spclist=spclist,catvarlist=catvarlist,outcome="Depressed",type="logistic",sig=0.05,complete_case=TRUE,track = "None") 
+
+test_data=NHANES[,c(lvarlist,spvarlist,catvarlist,"Depressed")]
+test_data=test_data[complete.cases(test_data),]
+
+(lm_formula=fit4$Orignal_formula)
+fit4_or=glm(as.formula(lm_formula),data=test_data,family="binomial")
+fit4_step=step(fit4_or, direction = "backward", trace=FALSE )
+summary(fit4_step)
+```
+
+The two model is exactly the same again.
+
+#### 3.2 Efficiency:
+
+Now, let's compare the efficiency between the two functions: To do this, we are going to use the `bench` package
+First, for the simple linear regression:
+```{r,results='hide'}
+qvarlist<-c("BPSysAve","SleepHrsNight","TotChol") #Quandratic terms
+lvarlist<-c("Age","BPDiaAve","Weight","Height") #linear terms
+spvarlist<-c("Pulse","DirectChol") #spline terms of linear function
+spclist<-c(70,1.2) #spline cutpoints
+catvarlist<-c("Depressed","Marijuana","Gender") #categorical variable list
+test_data=NHANES[,c(qvarlist,lvarlist,spvarlist,catvarlist,"BMI")]
+test_data=test_data[complete.cases(test_data),]
+
+#Now, lets fit the model again and run the step test:
+(lm_formula=fit1$Orignal_formula)
+fit1_or=lm(as.formula(lm_formula),data=test_data)
+
+
+
+t1=bench::mark(step(fit1_or, direction = "backward", trace=FALSE, test = "F" ),filter_gc = FALSE)
+t2=bench::mark(BWselection(data=NHANES,qvarlist,lvarlist,spvarlist,spclist,catvarlist,outcome="BMI",complete_case=TRUE),filter_gc = FALSE)
+t1$expression="Orignal Function"
+t2$expression="My function"
+t=rbind(t1,t2)
+
+```
+
+```{r}
+print(t)
+```
+
+From the result above, we could see that the total time for running the two program is almost the same. Thus, this function have similar efficiency as previous functions although we add the limitations in the quandratic terms selection.
+
+

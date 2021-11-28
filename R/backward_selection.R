@@ -1,23 +1,24 @@
-#'BWselection
+#'BackWard Selection
 #'
 #'Perform Backward selection on regression models
 #'
 #'@param data input Data used for the regression
 #'@param qvarlist Variable list in vector format, including all the variables needed for the quadratic form
-#'@param lvarlist Variable list in vector format, including all the variables in the continous linear form
+#'@param lvarlist Variable list in vector format, including all the variables in the continuous linear form
 #'@param spvarlist variable list in vector format, including all the variables for the spline form
-#'@param spclist if spvarlist is not empty, specify the cutpoints for the spline term
-#'@param catvarlist variable list in the vector format, including all the categorial variables
+#'@param spclist if spvarlist is not empty, specify the outpoints for the spline term
+#'@param catvarlist variable list in the vector format, including all the categorical variables
 #'@param outcome Outcome variable for the regression model
 #'@param type type of regression model, default is lm, logistic regression use type="logistic"
 #'@param sig significant level used for exit the model, default is 0.05
-#'@param complete_case whether to use the complete case for all the variables in the model, defualt is FALSE
-#'@param track Whether print the selection process
+#'@param complete_case whether to use the complete case for all the variables in the model, default is TRUE
+#'@param track Whether print the selection process, could select from "Simple","All", "None"
 #'
 #'
 #'@return a list of original formula, final fit model and final fit formula
 #'
 #'@examples
+#'
 #'#Load NHANES DATA
 #'library(NHANES)
 #'data("NHANES")
@@ -35,49 +36,11 @@
 #'                      spclist=spclist,catvarlist=catvarlist,outcome="BMI",type="lm",sig=0.05,complete_case=TRUE)
 #'
 #'
-#'#In order to compare the result, we use the step function build in R.
-#'#However, the function didn't work with the Incomplete case data, Thus, we need to clean it first and fit the model by hand
-#'
-#'#Clean the data:
-#'test_data=NHANES[,c(qvarlist,lvarlist,spvarlist,catvarlist,"BMI")]
-#'test_data=test_data[complete.cases(test_data),]
-#'
-#'#Fit the same original model by hand:(Note that here, we create quandartic forms as I(BPSysAve^2), same as result of BPSysAve_quar2)
-#'or_fit=lm(BMI~BPSysAve + I(BPSysAve^2) + SleepHrsNight +
-#'            I(SleepHrsNight^2) + TotChol + I(TotChol^2) +
-#'            Age + BPDiaAve + Weight + Height + as.factor(Depressed) +
-#'            as.factor(Marijuana) + as.factor(Gender) + lspline(Pulse,70) +
-#'            lspline(DirectChol,1.2),data=test_data)
-#'
-#'#Final model fit
-#'fit_2=step(or_fit, direction = "backward", trace=TRUE, test = "F" )
-#'
-#'##Compare the two results:
-#'summary(fit_2)
-#'summary(fit_test1$fit)
-#'
-#'
-#' #For logistic regression:
-#'qvarlist<-c("BPSysAve","SleepHrsNight","TotChol")
-#'lvarlist<-c("Age","BPDiaAve","Weight","Height","BMI")
-#'spvarlist<-c("Pulse","DirectChol")
-#'spclist<-c(70,1.2)
-#'catvarlist<-c("Marijuana","Gender")
-#'
-#' or_fit2=glm(Depressed~BPSysAve + I(BPSysAve^2) + SleepHrsNight +
-#'            I(SleepHrsNight^2) + TotChol + I(TotChol^2) +
-#'            Age + BPDiaAve + Weight + Height + BMI +
-#'            as.factor(Marijuana) + as.factor(Gender) + lspline(Pulse,70) +
-#'            lspline(DirectChol,1.2),data=test_data,family = "binomial")
-#' fit_3=step(or_fit, direction = "backward", trace=TRUE, test = "F" )
-#'
-#' fit_test2=BWselection(data=NHANES,qvarlist=qvarlist,lvarlist=lvarlist,spvarlist=spvarlist,
-#'                      spclist=spclist,catvarlist=catvarlist,outcome="Depressed",type="lm",sig=0.05,complete_case=TRUE)
 #'@export
 #'
 
 BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NULL,catvarlist=NULL,
-                  outcome,type="lm",sig=0.05,complete_case=FALSE,track=TRUE){
+                  outcome,type="lm",sig=0.05,complete_case=TRUE,track="Simple"){
   library(dplyr)
   library(lspline)
   library(stringi)
@@ -87,10 +50,12 @@ BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NU
   if(complete_case==TRUE){
     data=data[complete.cases(data),]
   }
-  #Error1: If no covariates selected:
-  if(length(qvarlist)+length(lvarlist)+length(spvarlist)+length(catvarlist)==0) stop("No covariates inputed.")
-  #Error2: If no spclist input but have spvarlist input:
-  if(length(spvarlist)!=0 & length(spclist)==0) stop("No split cutpoint input")
+  #------Error Messages--------------------:
+  #-----------------------------------------------------------------------------
+  if(length(qvarlist)+length(lvarlist)+length(spvarlist)+length(catvarlist)==0) stop("No covariates inputed.") #Error1: If no covariates selected:
+  if(length(spvarlist)!=0 & length(spclist)==0) stop("No split cutpoint input")   #Error2: If no spclist input but have spvarlist input:
+  if(track!="Simple" & track!="None" & track!="All") stop("track type not recognized")   #Error3: Type of track not recognized:
+  if(type!="lm" & type!="logistic") stop("type of regression not recognized")   #Error4: Type of regression not recognized:
   #------Generate overall varlist----------:
   #-----------------------------------------------------------------------------
   varlist=c()
@@ -157,7 +122,7 @@ BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NU
       full_model=model_pre
       break
     }
-    if(track){ #Print selection process
+    if(track!="None"){ #Print selection process
       if(length(removelist)!=0){ #Output remove list and other information
         print(paste0("Remove Var:",removelist,collapse =","))
       }
@@ -165,7 +130,9 @@ BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NU
       print(paste0("Test:",itest))
       print(full_model)
       print(paste0("AIC: ",extractAIC(fit)[2]))
-      print(summary(fit))  #Overall fit:
+      if(track=="All"){
+        print(summary(fit))  #Overall fit:
+      }
       print("----------------------------------------------------------------------")
     }
     coef_p=coef(summary(fit))[,ncol(coef(summary(fit)))] #Get coefficients
@@ -207,6 +174,7 @@ BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NU
     } #End for loop term of remove selection
     itest=itest+1
   }
+  print("Final Model")
   print(summary(fit))
   re_list=list()
   re_list[["fit"]]=fit
