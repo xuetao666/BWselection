@@ -1,16 +1,14 @@
 Package: BWselection
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Backward Selection
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Xueting Tao
+Maintainer: The package maintainer <xuetao@umich.edu>
+Description: Perform backward selection for linear regression and logistic regression models
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.2
 Suggests: 
-    knitr,
-    rmarkdown
+    knitr
 VignetteBuilder: knitr
