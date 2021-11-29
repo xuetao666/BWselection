@@ -1,6 +1,6 @@
 ---
 title: "Tutorial"
-output: rmarkdown::html
+output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Tutorial}
   %\VignetteEngine{knitr::rmarkdown}
