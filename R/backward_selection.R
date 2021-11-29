@@ -34,18 +34,17 @@
 #'#Run the model selection, this will return a list
 #'fit_test1=BWselection(data=NHANES,qvarlist=qvarlist,lvarlist=lvarlist,spvarlist=spvarlist,
 #'                      spclist=spclist,catvarlist=catvarlist,outcome="BMI",type="lm",sig=0.05,complete_case=TRUE)
-#'
+#'@import dplyr
+#'@import lspline
+#'@import stringi
+#'@import stringr
 #'
 #'@export
+#'
 #'
 
 BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NULL,catvarlist=NULL,
                   outcome,type="lm",sig=0.05,complete_case=TRUE,track="Simple"){
-  library(dplyr)
-  library(lspline)
-  library(stringi)
-  library(stringr)
-
   data=data[,c(qvarlist,lvarlist,spvarlist,catvarlist,outcome)] #Remove missings in the full model
   if(complete_case==TRUE){
     data=data[complete.cases(data),]

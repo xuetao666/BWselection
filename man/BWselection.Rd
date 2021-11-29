@@ -64,6 +64,4 @@ catvarlist<-c("Depressed","Marijuana","Gender")
 #Run the model selection, this will return a list
 fit_test1=BWselection(data=NHANES,qvarlist=qvarlist,lvarlist=lvarlist,spvarlist=spvarlist,
                      spclist=spclist,catvarlist=catvarlist,outcome="BMI",type="lm",sig=0.05,complete_case=TRUE)
-
-
 }
