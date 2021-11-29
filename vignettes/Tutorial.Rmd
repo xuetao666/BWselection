@@ -22,6 +22,7 @@ cat("\014")
 
 library(BWselection)
 library(NHANES)
+
 #Load dataset:
 data(NHANES)
 ```
@@ -100,6 +101,7 @@ First, let's compare the model generated in the previous example with the step f
 Since for the step function, if the data is not complete case and the rows is different, it will show the error message as below:
 
 ```{r,error=TRUE}
+library(lspline)
 fit1_or=lm(as.formula(lm_formula),data=NHANES)
 
 fit1_step=step(fit1_or, direction = "backward", trace=FALSE )
