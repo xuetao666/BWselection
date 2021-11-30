@@ -18,12 +18,15 @@ Depends:
 Suggests: 
     knitr,
     testthat (>= 3.0.0),
-    rmarkdown
+    rmarkdown,
+    bench
 Imports: 
     dplyr,
     lspline,
     stringi,
     stringr,
     NHANES
-VignetteBuilder: knitr
+VignetteBuilder: 
+    knitr,
+    bench
 Config/testthat/edition: 3
