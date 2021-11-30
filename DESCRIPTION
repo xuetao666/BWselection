@@ -5,12 +5,24 @@ Version: 0.1.0
 Author: Xueting Tao
 Maintainer: The package maintainer <xuetao@umich.edu>
 Description: Perform backward selection for linear regression and logistic regression models
-License: What license is it under?
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.2
+Depends: 
+    dplyr,
+    lspline,
+    stringi,
+    stringr,
+    NHANES
 Suggests: 
     knitr,
     testthat (>= 3.0.0)
+Imports: 
+    dplyr,
+    lspline,
+    stringi,
+    stringr,
+    NHANES
 VignetteBuilder: knitr
 Config/testthat/edition: 3

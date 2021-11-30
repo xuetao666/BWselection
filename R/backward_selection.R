@@ -38,6 +38,7 @@
 #'@import lspline
 #'@import stringi
 #'@import stringr
+#'@import NHANES
 #'
 #'@export
 #'
