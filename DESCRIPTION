@@ -17,7 +17,8 @@ Depends:
     NHANES
 Suggests: 
     knitr,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    rmarkdown
 Imports: 
     dplyr,
     lspline,
