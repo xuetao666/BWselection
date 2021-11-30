@@ -138,7 +138,7 @@ BWselection<-function(data,qvarlist=NULL,lvarlist=NULL,spvarlist=NULL,spclist=NU
     coef_p=coef(summary(fit))[,ncol(coef(summary(fit)))] #Get coefficients
     remove=FALSE
     while(remove==FALSE){ #Loop until at least one term is removed from the selection process
-      max_p=max(coef_p) #Get the terms of max p value
+      max_p=max(coef_p[-1]) #Get the terms of max p value
       names_p=names(coef_p)
       names_p=str_remove(names_p," ")
       names(coef_p)=names_p
