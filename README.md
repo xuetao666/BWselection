@@ -1,5 +1,6 @@
   <!-- badges: start -->
   [![R-CMD-check](https://github.com/xuetao666/BWselection/workflows/R-CMD-check/badge.svg)](https://github.com/xuetao666/BWselection/actions)
+  [![codecov](https://codecov.io/gh/xuetao666/BWselection/branch/main/graph/badge.svg?token=1N2Y9KS6RX)](https://codecov.io/gh/xuetao666/BWselection)
   <!-- badges: end -->
 
 # BWslection
