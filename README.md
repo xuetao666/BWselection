@@ -13,6 +13,11 @@ BWselection is a function to do the backward selection in R based on AIC and F-t
 #Install the package, need to install the devtools packages:
 install.packages("devtools")
 devtools::install_github("xuetao666/BWselection")
+
+#To install with Vignettes:
+install.packages("devtools")
+devtools::install_github("xuetao666/BWselection",build_vignettes =T)
+
 ```
 ## Usage:
 
